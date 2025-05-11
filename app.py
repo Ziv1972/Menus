@@ -45,30 +45,23 @@ if menu_file and rules_file:
             keywords.add(str(row["סוג"]).strip().lower())
             return list(keywords)
 
-        # כללים מותאמים אישית לפי אישור המשתמש
         custom_equivalents = {
-    "שיפודי כנפיים עם ירקות גריל": ["כנפיים"],
-    "עופות שלמים בגריל": ["עוף שלם", "עופות שלמים"],
-    "טבית עופות צלויים עם אורז ובהרט": ["טבית"],
-    "סלט אבוקדו": ["אבוקדו"],
-    "סלט פטריות אסייתי": ["פטריות אסייתי", "פטריות אסייאתי"],
-    "שניצל עוף פריך": ["שניצל"],
-    "חזה עוף בגריל": ["חזה עוף"],
-    "המבורגר בקר": ["המבורגר"],
-    "קציצות בקר ברוטב": ["קציצות בשר ברוטב אדום על קוסקוס", "קציצות ברוטב אדום פיקנטיי"],
-    "ממולאים קטנים": [
-        "פרגית ממולאת אורז לצד ירקות צלויים",
-        "פילה פילו ממולא בתערובת בשר עגל",
-        "חציל ממולא",
-        "עלי גפן ממולאים"
-    ],
-    "בקלוואת בשר": ["בקלאוות בשר מדפי פילו בסגנון סוכריה"]
-
             "שיפודי כנפיים עם ירקות גריל": ["כנפיים"],
             "עופות שלמים בגריל": ["עוף שלם", "עופות שלמים"],
             "טבית עופות צלויים עם אורז ובהרט": ["טבית"],
             "סלט אבוקדו": ["אבוקדו"],
             "סלט פטריות אסייתי": ["פטריות אסייתי", "פטריות אסייאתי"],
+            "שניצל עוף פריך": ["שניצל"],
+            "חזה עוף בגריל": ["חזה עוף"],
+            "המבורגר בקר": ["המבורגר"],
+            "קציצות בקר ברוטב": ["קציצות בשר ברוטב אדום על קוסקוס", "קציצות ברוטב אדום פיקנטיי"],
+            "ממולאים קטנים": [
+                "פרגית ממולאת אורז לצד ירקות צלויים",
+                "פילה פילו ממולא בתערובת בשר עגל",
+                "חציל ממולא",
+                "עלי גפן ממולאים"
+            ],
+            "בקלוואת בשר": ["בקלאוות בשר מדפי פילו בסגנון סוכריה"]
         }
 
         def count_matches(keywords, series, original_name):
@@ -76,34 +69,23 @@ if menu_file and rules_file:
             for dish in series:
                 dish = dish.strip().lower()
 
-                # התאמה לפי כלל מותאם אישי
                 for rule_name, rule_keywords in custom_equivalents.items():
-                if any(trigger in name for trigger in [rule_name]) or any(trigger in name for trigger in rule_keywords):
-                    if any(custom_kw in dish for custom_kw in rule_keywords):
-                        count += 1
-                        break
-                    if any(custom_kw in dish for custom_kw in custom_equivalents[original_name]):
+                    if rule_name in original_name or any(trigger in original_name for trigger in rule_keywords):
+                        if any(custom_kw in dish for custom_kw in rule_keywords):
+                            count += 1
+                            break
+                else:
+                    if dish in keywords:
                         count += 1
                         continue
-
-                # התאמה מלאה
-                if dish in keywords:
-                    count += 1
-                    continue
-
-                # התאמה לפי לפחות שתי מילים מתוך הרשימה
-                if sum(1 for k in keywords if k in dish) >= 2:
-                    count += 1
-                    continue
-
-                # מילה אחת מתוך הרשימה
-                if len(keywords) == 1 and any(k in dish for k in keywords):
-                    count += 1
-                    continue
-
-                # התאמה fuzzy
-                if any(fuzzy_match(k, dish) for k in keywords):
-                    count += 1
+                    if sum(1 for k in keywords if k in dish) >= 2:
+                        count += 1
+                        continue
+                    if len(keywords) == 1 and any(k in dish for k in keywords):
+                        count += 1
+                        continue
+                    if any(fuzzy_match(k, dish) for k in keywords):
+                        count += 1
             return count
 
         report = []
