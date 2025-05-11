@@ -3,19 +3,17 @@ import streamlit as st
 import pandas as pd
 from difflib import SequenceMatcher
 
-st.set_page_config(page_title="בודק תפריטים מוסדיים", layout="wide")
-st.title("📄 מערכת בדיקת תפריטי צהריים")
+st.set_page_config(page_title="Institutional Menu Checker", layout="wide")
+st.title("📄 Institutional Lunch Menu Checker")
 
-st.markdown("""
-העלה קובץ **תפריט** (לפי שבועות או חודש) וכן קובץ **התניות ומגבלות**.
-המערכת תבצע בדיקות תדירות והתאמות לפי ההגדרות, כולל סימון חריגות.
-""")
+st.markdown("""Upload a **menu file** (Excel) and a **rules file** with frequency and keyword conditions.
+The system will highlight frequency violations based on your definitions.""")
 
-menu_file = st.file_uploader("בחר קובץ תפריט (Excel)", type="xlsx", key="menu")
-rules_file = st.file_uploader("בחר קובץ התניות ומגבלות (Excel)", type="xlsx", key="rules")
+menu_file = st.file_uploader("Upload Menu Excel File", type="xlsx", key="menu")
+rules_file = st.file_uploader("Upload Rules Excel File", type="xlsx", key="rules")
 
 if menu_file and rules_file:
-    with st.spinner("קורא נתונים..."):
+    with st.spinner("Processing data..."):
         menu_xls = pd.ExcelFile(menu_file)
         rules_xls = pd.ExcelFile(rules_file)
 
@@ -73,10 +71,10 @@ if menu_file and rules_file:
                 continue
             actual = count_matches(keywords, actual_dishes)
             if actual < required:
-                report.append({"מנה": name, "נדרש": required, "הופיע בפועל": actual, "פער": required - actual})
+                report.append({"Dish": name, "Required": required, "Actual": actual, "Gap": required - actual})
 
         result_df = pd.DataFrame(report)
 
-    st.success("הבדיקה הושלמה!")
+    st.success("Check completed.")
     st.dataframe(result_df, use_container_width=True)
-    st.download_button("הורד דו"ח Excel", result_df.to_csv(index=False).encode("utf-8"), file_name="דו"ח תדירות.csv")
+    st.download_button("Download CSV Report", result_df.to_csv(index=False).encode("utf-8"), file_name="menu_report.csv")
