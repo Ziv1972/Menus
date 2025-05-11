@@ -52,6 +52,17 @@ if menu_file and rules_file:
             "טבית עופות צלויים עם אורז ובהרט": ["טבית"],
             "סלט אבוקדו": ["אבוקדו"],
             "סלט פטריות אסייתי": ["פטריות אסייתי", "פטריות אסייאתי"],
+    "שניצל עוף פריך": ["שניצל"],
+    "חזה עוף בגריל": ["חזה עוף"],
+    "המבורגר בקר": ["המבורגר"],
+    "קציצות בקר ברוטב": ["קציצות בשר ברוטב אדום על קוסקוס", "קציצות ברוטב אדום פיקנטיי"],
+    "בקלוואת בשר": ["בקלאוות בשר מדפי פילו בסגנון סוכריה"],
+    "ממולאים קטנים": [
+        "פרגית ממולאת אורז לצד ירקות צלויים",
+        "פילה פילו ממולא בתערובת בשר עגל",
+        "חציל ממולא",
+        "עלי גפן ממולאים"
+    ],
         }
 
         def count_matches(keywords, series, original_name):
@@ -60,7 +71,12 @@ if menu_file and rules_file:
                 dish = dish.strip().lower()
 
                 # התאמה לפי כלל מותאם אישי
-                if original_name in custom_equivalents:
+                for rule_name, rule_keywords in custom_equivalents.items():
+                if any(trigger in name for trigger in [rule_name]) or any(trigger in name for trigger in rule_keywords):
+                    if any(custom_kw in dish for custom_kw in rule_keywords):
+                        count += 1
+                        break
+
                     if any(custom_kw in dish for custom_kw in custom_equivalents[original_name]):
                         count += 1
                         continue
