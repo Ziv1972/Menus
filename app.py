@@ -7,7 +7,7 @@ st.set_page_config(page_title="Institutional Menu Checker", layout="wide")
 st.title("📄 Institutional Lunch Menu Checker")
 
 st.markdown("""Upload a **menu file** (Excel) and a **rules file** with frequency and keyword conditions.
-The system will highlight frequency violations based on your definitions.""")
+The system will highlight frequency violations based on your definitions, including customized matching rules (e.g., 'chicken wings', 'stuffed chicken', 'tabit').""")
 
 menu_file = st.file_uploader("Upload Menu Excel File", type="xlsx", key="menu")
 rules_file = st.file_uploader("Upload Rules Excel File", type="xlsx", key="rules")
@@ -34,28 +34,53 @@ if menu_file and rules_file:
 
         actual_dishes = pd.Series(all_weeks_df[day_cols].values.ravel()).dropna().str.strip().str.lower()
 
+        def fuzzy_match(k, dish):
+            return SequenceMatcher(None, k, dish).ratio() >= 0.85
+
         def get_keywords(row):
             keywords = set()
             for col in ["מלל חלופי", "יכול להופיע כ", "דוגמאות מהתפריט"]:
                 if pd.notna(row.get(col)):
                     keywords.update(x.strip().lower() for x in str(row[col]).split("/"))
-            return list(keywords) if keywords else [str(row["סוג"]).strip().lower()]
+            keywords.add(str(row["סוג"]).strip().lower())
+            return list(keywords)
 
-        def fuzzy_match(k, dish):
-            return SequenceMatcher(None, k, dish).ratio() >= 0.85
+        # כללים מותאמים אישית לפי אישור המשתמש
+        custom_equivalents = {
+            "שיפודי כנפיים עם ירקות גריל": ["כנפיים"],
+            "עופות שלמים בגריל": ["עוף שלם", "עופות שלמים"],
+            "טבית עופות צלויים עם אורז ובהרט": ["טבית"],
+            "סלט אבוקדו": ["אבוקדו"],
+            "סלט פטריות אסייתי": ["פטריות אסייתי", "פטריות אסייאתי"],
+        }
 
-        def count_matches(keywords, series):
+        def count_matches(keywords, series, original_name):
             count = 0
             for dish in series:
+                dish = dish.strip().lower()
+
+                # התאמה לפי כלל מותאם אישי
+                if original_name in custom_equivalents:
+                    if any(custom_kw in dish for custom_kw in custom_equivalents[original_name]):
+                        count += 1
+                        continue
+
+                # התאמה מלאה
                 if dish in keywords:
                     count += 1
                     continue
+
+                # התאמה לפי לפחות שתי מילים מתוך הרשימה
                 if sum(1 for k in keywords if k in dish) >= 2:
                     count += 1
                     continue
+
+                # מילה אחת מתוך הרשימה
                 if len(keywords) == 1 and any(k in dish for k in keywords):
                     count += 1
                     continue
+
+                # התאמה fuzzy
                 if any(fuzzy_match(k, dish) for k in keywords):
                     count += 1
             return count
@@ -64,17 +89,22 @@ if menu_file and rules_file:
         for _, row in min_freq_df.iterrows():
             name = str(row["סוג"]).strip()
             keywords = get_keywords(row)
-            req = row.get("בחודש") or row.get("בשבוע")
+            required = row.get("בחודש") or row.get("בשבוע")
             try:
-                required = int(req) if row.get("בחודש") else int(req) * 5
+                required = int(required) if row.get("בחודש") else int(required) * 5
             except:
                 continue
-            actual = count_matches(keywords, actual_dishes)
+            actual = count_matches(keywords, actual_dishes, name)
             if actual < required:
-                report.append({"Dish": name, "Required": required, "Actual": actual, "Gap": required - actual})
+                report.append({
+                    "Dish Type": name,
+                    "Required": required,
+                    "Actual Found": actual,
+                    "Gap": required - actual
+                })
 
         result_df = pd.DataFrame(report)
 
-    st.success("Check completed.")
+    st.success("Menu check completed.")
     st.dataframe(result_df, use_container_width=True)
     st.download_button("Download CSV Report", result_df.to_csv(index=False).encode("utf-8"), file_name="menu_report.csv")
